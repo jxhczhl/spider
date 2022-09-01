@@ -8,7 +8,7 @@ var document={
 
 }
 var navigator={
-    "pua":"'Mozilla/5.0 (Windows;14.0.0;x86;64;) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36'",
+    "pua":"Mozilla/5.0 (Windows;14.0.0;x86;64;) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36",
     "userAgent":'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
     "productSub": "20030107",
     "language": 'zh-CN',
@@ -275,6 +275,10 @@ var  bmak = {
     jrs: function (t) {
         for (var a = Math["floor"](1e5 * Math["random"]() + 1e4), e = String(t * a), n = 0, o = [], m = e["length"] >= 18; o["length"] < 6;) o["push"](parseInt(e["slice"](n, n + 2))), n = m ? n + 3 : n + 2;
         return [a, bmak["cal_dis"](o)];
+    },
+    rir: function(t, a, e, n) {
+        return t > a && t <= e && (t += n % (e - a)) > e && (t = t - e + a),
+        t
     },
     fm: function () {
         bmak["fmz"] = 1.25;
