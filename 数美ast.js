@@ -199,7 +199,7 @@ let visitor2 = {
         }
         let binding = path.scope.getBinding(Array2Name)
         // 新建一个操作次数，如果数组的引用节点都操作了的话 次数加一 如果等于所有次数，就说明全修改了，可以删除定义的节点了
-        let modificationNum=0
+        let modificationNum = 0
         for (p of binding.referencePaths.reverse()) {
             // 此时的p是数组名称，要父级path才有成员名
             let pPath = p.parentPath;
@@ -211,10 +211,10 @@ let visitor2 = {
             let rightNode = NewObject[keyName]
             if (!NewObject[keyName]) return
             if (rightNode.type === "StringLiteral") {
-                if(pPath.node.property.value.length>=6)return;
+                if (pPath.node.property.value.length >= 6) return;
                 //console.log("旧代码111", pPath.toString());
                 pPath.replaceWith(types.valueToNode(rightNode.value));
-                modificationNum+=1
+                modificationNum += 1
                 //console.log("新代码111", pPath.toString())
                 //console.log("-------------------")
             } else if (rightNode.type === "FunctionExpression") {
@@ -229,34 +229,34 @@ let visitor2 = {
                 //BinaryExpression 就是长这样的代码 return _0x398914 == _0x5433f6;
                 if (bodyResult.argument.type === "BinaryExpression") {
                     let {operator} = bodyResult.argument
-                        // 只有一个参数，说明是判断类型的，右边固定
-                        if (arguments.length === 1) {
-                            parentPath.replaceWith(types.binaryExpression(operator, node.arguments[0], bodyResult.argument.right))
-                            modificationNum+=1
-                        } else if (arguments.length === 2) {
-                                // console.log("旧代码222", pPath.toString())
-                                parentPath.replaceWith(types.binaryExpression(operator, node.arguments[0], node.arguments[1]))
-                                modificationNum+=1
-                                // console.log("新代码222", parentPath.toString())
-                                // console.log("-------------------")
+                    // 只有一个参数，说明是判断类型的，右边固定
+                    if (arguments.length === 1) {
+                        parentPath.replaceWith(types.binaryExpression(operator, node.arguments[0], bodyResult.argument.right))
+                        modificationNum += 1
+                    } else if (arguments.length === 2) {
+                        // console.log("旧代码222", pPath.toString())
+                        parentPath.replaceWith(types.binaryExpression(operator, node.arguments[0], node.arguments[1]))
+                        modificationNum += 1
+                        // console.log("新代码222", parentPath.toString())
+                        // console.log("-------------------")
 
-                        }
+                    }
                 } else if (bodyResult.argument.type === "CallExpression") {
                     if (node.arguments.length >= 1) {
-                                // console.log("旧代码", pPath.parentPath.toString())
-                                pPath.parentPath.replaceWith(types.callExpression(node.arguments[0], node.arguments.slice(1)));
-                                modificationNum+=1
-                                // console.log("新代码", pPath.parentPath.toString())
-                                // console.log("-------------------")
+                        // console.log("旧代码", pPath.parentPath.toString())
+                        pPath.parentPath.replaceWith(types.callExpression(node.arguments[0], node.arguments.slice(1)));
+                        modificationNum += 1
+                        // console.log("新代码", pPath.parentPath.toString())
+                        // console.log("-------------------")
                     }
-                }else if(bodyResult.argument.type==="LogicalExpression"){
+                } else if (bodyResult.argument.type === "LogicalExpression") {
                     parentPath.replaceWith(types.logicalExpression("||", node.arguments[0], node.arguments[1]))
-                    modificationNum+=1
+                    modificationNum += 1
                 }
             }
 
         }
-        if(modificationNum===binding.referencePaths.length){
+        if (modificationNum === binding.referencePaths.length) {
             // console.log("删除了一个小数组。")
             path.remove()
         }
@@ -264,30 +264,45 @@ let visitor2 = {
 }
 
 // 获取动态post参数和加密的key
-let key_dict=[];
-let visitor3={
-    "AssignmentExpression"(path){
-        let {node}=path;
-        let {left,right}=node;
-        if(!left.property||left.property.type!=="StringLiteral")return
-        if(!right||!right.arguments||right.arguments.length!==2)return;
-        if(right.arguments[1].type!=="StringLiteral"||right.arguments[1].value.length!==8)return;
+let key_dict = [];
+let visitor3 = {
+    "AssignmentExpression"(path) {
+        let {node} = path;
+        let {left, right} = node;
+        if (!left.property || left.property.type !== "StringLiteral") return
+        if (!right || !right.arguments || right.arguments.length !== 2) return;
+        if (right.arguments[1].type !== "StringLiteral" || right.arguments[1].value.length !== 8) return;
         // console.log(left.property.value,right.arguments[1].value)
-        key_dict.push([left.property.value,right.arguments[1].value])
+        key_dict.push([left.property.value, right.arguments[1].value])
+    },
+    // 获取最后三个参数及key
+    "CallExpression"(path) {
+        let {node} = path;
+        if (!node.arguments || node.arguments.length !== 3) return; // 必须是三个参数 对象，参数名(2长度)，加密的值
+        if (node.arguments[1].type !== "StringLiteral" || node.arguments[1].value.length !== 2) return;
+        let key = node.arguments[1].value;
+        let right_node = node.arguments[2];
+        if (right_node.type != "CallExpression") return;
+        if (right_node.arguments.length !== 2) return;
+        if (right_node.arguments[1].value.length == 8) {
+            let value = right_node.arguments[1].value;
+            key_dict.push([key, value]);
+        }
     }
+
 }
 traverse(ast, visitor1);
 traverse(ast, visitorArray);
 traverse(ast, visitor2);
 traverse(ast, visitor3);
-console.log(key_dict)
+console.log(key_dict.length);
+console.log(key_dict);
 
-
-let {code} = generator(ast, opts = {
-    compact: true,
-    jsescOption: {minified: true, retainFunctionParens: true, retainLines: true}
-})
-fs.writeFile('./demoNew.js', code, (err) => {
-});
+// let {code} = generator(ast, opts = {
+//     compact: true,
+//     jsescOption: {minified: true, retainFunctionParens: true, retainLines: true}
+// })
+// fs.writeFile('./demoNew.js', code, (err) => {
+// });
 
 console.timeEnd("耗时:")
